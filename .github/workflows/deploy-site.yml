@@ -8,7 +8,7 @@ on:
 
 env:
   NODE_VERSION: '16.x'
-  STORAGE_ACCOUNT: 'shakulgupta'
+  STORAGE_ACCOUNT: 'shakuldeploy'
 
 jobs:
   build-and-deploy:
