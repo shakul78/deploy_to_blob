@@ -1,36 +1,37 @@
 name: Deploy site
 
 on:
-  workflow_run:
-    workflows: ["Build site"]
-    branches: [master]
-    types: [completed]
+    push:
+        branches: [ master ]
+    pull_request:
+        branches: [ master ]
+
+env:
+  NODE_VERSION: '16.x'
+  STORAGE_ACCOUNT: 'shakuldeploy'
 
 jobs:
-  deploy:
-    name: Deploy
+  build-and-deploy:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    
     steps:
-    - name: Download artifact
-      uses: dawidd6/action-download-artifact@v2
+    - uses: actions/checkout@v3
+    - name: Use Node.js ${{ env.NODE_VERSION }}
+      uses: actions/setup-node@v1
       with:
-        workflow: build-site.yml
-        workflow_conclusion: success
-    
-    - name: Azure login
-      uses: azure/login@v1
+        node-version: ${{ env.NODE_VERSION }}
+    - name: npm install and build
+      run: |
+        npm install
+        npm run build --if-present
+    - uses: azure/login@v1
       with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-    
-    - name: Upload to Azure blob storage
+    - name: Upload to the storage account
       uses: azure/CLI@v1
       with:
         azcliversion: 2.0.72
         inlineScript: |
-            az storage blob upload-batch --account-name shakuldeploy -d '$web' -s ./production-files
-    
-    - name: Azure logout
+            az storage blob upload-batch --source ./build --destination '$web' --account-name ${{ env.STORAGE_ACCOUNT }}
+    - name: logout
       run: |
             az logout
